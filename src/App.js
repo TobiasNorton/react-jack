@@ -8,11 +8,11 @@ class App extends Component {
     super(props)
 
     this.state = {
+      gameResults: 'Test Your Skills',
+      playing: true,
       deck_id: '',
       player: [],
-      dealer: [],
-      gameResults: 'Test Your Skills!',
-      playing: true
+      dealer: []
     }
   }
 
@@ -26,12 +26,12 @@ class App extends Component {
     })
   }
 
-  hit = () => {
-    this.dealCards(1, 'player')
-  }
-
   componentDidUpdate = () => {
-    if (this.totalHand('player') > 21 && this.state.playing) {
+    if (!this.state.playing) {
+      return
+    }
+
+    if (this.totalHand('player') > 21) {
       this.setState({
         gameResults: 'Player Busted!',
         playing: false
@@ -39,29 +39,69 @@ class App extends Component {
     }
   }
 
-  dealCards = (numberOfCards, whichPerson) => {
+  dealCards = async (numberOfCards, whichHand) => {
+    // Don't allow cards to be dealt in a game that is over
     if (!this.state.playing) {
       return
     }
-    axios
+
+    // put the axios request to get this number of cards
+    // and add to the players hand
+    await axios
       .get(`https://deckofcardsapi.com/api/deck/${this.state.deck_id}/draw/?count=${numberOfCards}`)
       .then(response => {
         const newState = {
-          [whichPerson]: update(this.state[whichPerson], { $push: response.data.cards })
+          [whichHand]: update(this.state[whichHand], {
+            $push: response.data.cards
+          })
         }
+
         this.setState(newState)
       })
   }
 
   whenNewDeckIsShuffled = () => {
-    console.log(this.state.deck_id)
+    // this will happen after state is updated
+
+    // call the API for "Draw a Card"
+    // -- draw two cards
+    // -- make sure to supply the deck_id
+    // -- console log the result to be sure it
+    // -- works the way we want
     this.dealCards(2, 'player')
+
     this.dealCards(2, 'dealer')
   }
 
-  totalHand = whichPerson => {
+  hit = event => {
+    this.dealCards(1, 'player')
+  }
+
+  stay = async event => {
+    while (this.totalHand('dealer') < 17) {
+      await this.dealCards(1, 'dealer')
+    }
+  }
+
+  totalHand = whichHand => {
     let total = 0
-    this.state[whichPerson].forEach(card => {
+    this.state[whichHand].forEach(card => {
+      // Using object lookup
+      const VALUES = {
+        ACE: 11,
+        KING: 10,
+        QUEEN: 10,
+        JACK: 10
+      }
+      total = total + (VALUES[card.value] || parseInt(card.value))
+    })
+
+    return total
+  }
+
+  totalDealerHand = () => {
+    let total = 0
+    this.state.dealer.forEach(card => {
       // Using object lookup
       const VALUES = {
         ACE: 11,
@@ -78,10 +118,9 @@ class App extends Component {
   buttonClass = () => {
     if (!this.state.playing) {
       return 'hidden'
-    } else {
-      return ''
     }
   }
+
   render() {
     return (
       <>
@@ -95,19 +134,22 @@ class App extends Component {
 
         <div className="play-area">
           <div className="left">
-            <button onClick={this.hit} className={`hit ${this.buttonClass()}`}>
+            <button className={`hit ${this.buttonClass()}`} onClick={this.hit}>
               Hit
             </button>
             <p>Your Cards:</p>
-            <p className="player-total">Total {this.totalHand('player')}</p>
+            <p className="player-total">Total {this.totalHand('player')} </p>
             <div className="player-hand">
               <Hand cards={this.state.player} />
             </div>
           </div>
+
           <div className="right">
-            <button className={`stay ${this.buttonClass()}`}>Stay</button>
+            <button onClick={this.stay} className={`stay ${this.buttonClass()}`}>
+              Stay
+            </button>
             <p>Dealer Cards:</p>
-            <p className="dealer-total">{this.totalHand('dealer')}</p>
+            <p className="dealer-total">Facedown</p>
             <div className="dealer-hand">
               <Hand cards={this.state.dealer} />
             </div>
