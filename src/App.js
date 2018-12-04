@@ -10,29 +10,9 @@ class App extends Component {
     this.state = {
       deck_id: '',
       player: [],
-      dealer: []
+      dealer: [],
+      gameResults: 'Test Your Skills!'
     }
-  }
-
-  whenNewDeckIsShuffled = () => {
-    console.log(this.state.deck_id)
-    axios
-      .get(`https://deckofcardsapi.com/api/deck/${this.state.deck_id}/draw/?count=2`)
-      .then(response => {
-        const newState = {
-          player: update(this.state.player, { $push: response.data.cards })
-        }
-        this.setState(newState)
-      })
-
-    axios
-      .get(`https://deckofcardsapi.com/api/deck/${this.state.deck_id}/draw/?count=2`)
-      .then(response => {
-        const newState = {
-          dealer: update(this.state.dealer, { $push: response.data.cards })
-        }
-        this.setState(newState)
-      })
   }
 
   componentDidMount = () => {
@@ -45,12 +25,57 @@ class App extends Component {
     })
   }
 
+  hit = () => {
+    this.dealCards(1, 'player')
+  }
+
+  componentDidUpdate = () => {
+    if (this.totalHand('player') > 21) {
+      this.setState({
+        gameResults: 'Player Busted!'
+      })
+    }
+  }
+
+  dealCards = (numberOfCards, whichPerson) => {
+    axios
+      .get(`https://deckofcardsapi.com/api/deck/${this.state.deck_id}/draw/?count=${numberOfCards}`)
+      .then(response => {
+        const newState = {
+          [whichPerson]: update(this.state[whichPerson], { $push: response.data.cards })
+        }
+        this.setState(newState)
+      })
+  }
+
+  whenNewDeckIsShuffled = () => {
+    console.log(this.state.deck_id)
+    this.dealCards(2, 'player')
+    this.dealCards(2, 'dealer')
+  }
+
+  totalHand = whichPerson => {
+    let total = 0
+    this.state[whichPerson].forEach(card => {
+      // Using object lookup
+      const VALUES = {
+        ACE: 11,
+        KING: 10,
+        QUEEN: 10,
+        JACK: 10
+      }
+      total = total + (VALUES[card.value] || parseInt(card.value))
+    })
+
+    return total
+  }
+
   render() {
     return (
       <>
         <h1>Blackjack</h1>
         <div className="center">
-          <p className="game-results">Test Your Skills!</p>
+          <p className="game-results">{this.state.gameResults}</p>
         </div>
         <div className="center">
           <button className="reset hidden">Play Again!</button>
@@ -58,9 +83,11 @@ class App extends Component {
 
         <div className="play-area">
           <div className="left">
-            <button className="hit">Hit</button>
+            <button onClick={this.hit} className="hit">
+              Hit
+            </button>
             <p>Your Cards:</p>
-            <p className="player-total">Total 0</p>
+            <p className="player-total">Total {this.totalHand('player')}</p>
             <div className="player-hand">
               <Hand cards={this.state.player} />
             </div>
@@ -68,11 +95,9 @@ class App extends Component {
           <div className="right">
             <button className="stay">Stay</button>
             <p>Dealer Cards:</p>
-            <p className="dealer-total">Facedown</p>
+            <p className="dealer-total">{this.totalHand('dealer')}</p>
             <div className="dealer-hand">
               <Hand cards={this.state.dealer} />
-              {/* <img className="cardback-one" alt="card" src="./images/card back red.png" />
-              <img className="cardback-two" alt="card" src="./images/card back red.png" /> */}
             </div>
           </div>
         </div>
