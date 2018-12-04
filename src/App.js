@@ -11,7 +11,8 @@ class App extends Component {
       deck_id: '',
       player: [],
       dealer: [],
-      gameResults: 'Test Your Skills!'
+      gameResults: 'Test Your Skills!',
+      playing: true
     }
   }
 
@@ -30,14 +31,18 @@ class App extends Component {
   }
 
   componentDidUpdate = () => {
-    if (this.totalHand('player') > 21) {
+    if (this.totalHand('player') > 21 && this.state.playing) {
       this.setState({
-        gameResults: 'Player Busted!'
+        gameResults: 'Player Busted!',
+        playing: false
       })
     }
   }
 
   dealCards = (numberOfCards, whichPerson) => {
+    if (!this.state.playing) {
+      return
+    }
     axios
       .get(`https://deckofcardsapi.com/api/deck/${this.state.deck_id}/draw/?count=${numberOfCards}`)
       .then(response => {
@@ -70,6 +75,13 @@ class App extends Component {
     return total
   }
 
+  buttonClass = () => {
+    if (!this.state.playing) {
+      return 'hidden'
+    } else {
+      return ''
+    }
+  }
   render() {
     return (
       <>
@@ -83,7 +95,7 @@ class App extends Component {
 
         <div className="play-area">
           <div className="left">
-            <button onClick={this.hit} className="hit">
+            <button onClick={this.hit} className={`hit ${this.buttonClass()}`}>
               Hit
             </button>
             <p>Your Cards:</p>
@@ -93,7 +105,7 @@ class App extends Component {
             </div>
           </div>
           <div className="right">
-            <button className="stay">Stay</button>
+            <button className={`stay ${this.buttonClass()}`}>Stay</button>
             <p>Dealer Cards:</p>
             <p className="dealer-total">{this.totalHand('dealer')}</p>
             <div className="dealer-hand">
