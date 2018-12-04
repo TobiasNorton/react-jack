@@ -12,9 +12,20 @@ class App extends Component {
 
   componentDidMount = () => {
     axios.get('https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1').then(response => {
-      this.setState({
+      const newState = {
         deck_id: response.data.deck_id
-      })
+      }
+
+      const afterStateIsUpdated = () => {
+        console.log(this.state.deck_id)
+        axios
+          .get(`https://deckofcardsapi.com/api/deck/${this.state.deck_id}/draw/?count=2`)
+          .then(response => {
+            console.log(response.data)
+          })
+      }
+
+      this.setState(newState, afterStateIsUpdated)
     })
   }
 
