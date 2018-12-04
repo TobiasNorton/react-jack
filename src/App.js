@@ -1,13 +1,29 @@
 import React, { Component } from 'react'
 import axios from 'axios'
+import update from 'immutability-helper'
 
 class App extends Component {
   constructor(props) {
     super(props)
 
     this.state = {
-      deck_id: ''
+      deck_id: '',
+      player: []
     }
+  }
+
+  whenNewDeckIsShuffled = () => {
+    console.log(this.state.deck_id)
+    axios
+      .get(`https://deckofcardsapi.com/api/deck/${this.state.deck_id}/draw/?count=2`)
+      .then(response => {
+        console.log(response.data.cards)
+
+        const newState = {
+          player: update(this.state.player, { $push: response.data.cards })
+        }
+        this.setState(newState)
+      })
   }
 
   componentDidMount = () => {
@@ -16,16 +32,7 @@ class App extends Component {
         deck_id: response.data.deck_id
       }
 
-      const afterStateIsUpdated = () => {
-        console.log(this.state.deck_id)
-        axios
-          .get(`https://deckofcardsapi.com/api/deck/${this.state.deck_id}/draw/?count=2`)
-          .then(response => {
-            console.log(response.data)
-          })
-      }
-
-      this.setState(newState, afterStateIsUpdated)
+      this.setState(newState, this.whenNewDeckIsShuffled)
     })
   }
 
